@@ -28,6 +28,7 @@ namespace DataLake.gen2
                 ServicePrincipalSecret = CLIENT_SECRET
             };
             var client = new DataLakeStorageClient(ACCOUNT_NAME, FILESYSTEM, azureADSettings);
+
             Console.WriteLine("Creating File");
             var res = client.CreateFile(path).Result;
             Console.WriteLine("StatusCode=" + res.StatusCode);
@@ -46,6 +47,16 @@ namespace DataLake.gen2
             Console.WriteLine("StatusCode=" + res.ToString());
             res.EnsureSuccessStatusCode();
 
+            Console.WriteLine("Reading");
+            res = client.Read(path, 30).Result;
+            Console.WriteLine("StatusCode=" + res.StatusCode);
+            Console.WriteLine("StatusCode=" + res.ToString());
+            res.EnsureSuccessStatusCode();
+            var target = ToApplicationPath("test1-" + Guid.NewGuid().ToString() + ".txt");
+            Console.WriteLine("Writing to =" + target);
+
+            File.WriteAllBytes(target, res.Content.ReadAsByteArrayAsync().Result);
+
 
         }
 
@@ -59,6 +70,26 @@ namespace DataLake.gen2
             Regex appPathMatcher = new Regex(@"(?<!fil)[A-Za-z]:\\+[\S\s]*?(?=\\+bin)");
             var appRoot = appPathMatcher.Match(exePath).Value;
             return Path.Combine(appRoot, fileName);
+        }
+
+        private class ByteArrayContent
+        {
+            private object result;
+
+            public ByteArrayContent(object result)
+            {
+                this.result = result;
+            }
+        }
+
+        private class StreamContent
+        {
+            private object stream;
+
+            public StreamContent(object stream)
+            {
+                this.stream = stream;
+            }
         }
     }
 }

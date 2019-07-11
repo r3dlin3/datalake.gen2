@@ -49,7 +49,7 @@ namespace DataLake.gen2
             Dictionary<string, string> queryParams = new Dictionary<string, string>();
             queryParams.Add("resource", "file");
 
-            return await Send(HttpMethod.Put, path, null, queryParams);
+            return await Send(HttpMethod.Put, path, queryParams);
         }
 
         public async Task<HttpResponseMessage> Append(string path, byte[] content, string contentType)
@@ -58,7 +58,7 @@ namespace DataLake.gen2
             queryParams.Add("action", "append");
             queryParams.Add("position", "0");
 
-            return await Send(PATCH, path, content, queryParams, null, contentType);
+            return await Send(PATCH, path, queryParams, null, content, contentType);
         }
 
         public async Task<HttpResponseMessage> Flush(string path, long contentLength)
@@ -67,11 +67,25 @@ namespace DataLake.gen2
             queryParams.Add("action", "flush");
             queryParams.Add("position", contentLength.ToString());
 
-            return await Send(PATCH, path, null, queryParams);
+            return await Send(PATCH, path, queryParams);
         }
 
-        public async Task<HttpResponseMessage> Send(HttpMethod method, string path, byte[] content,
-            Dictionary<string, string> queryParams = null, Dictionary<string, string> headers = null, string contentType = null)
+
+        public async Task<HttpResponseMessage> Read(string path, int timeout = -1)
+        {
+            Dictionary<string, string> queryParams = new Dictionary<string, string>();
+            if (timeout > 0) {
+                queryParams.Add("timeout", timeout.ToString());
+            }
+
+            return await Send(HttpMethod.Get, path, queryParams);
+        }
+
+        public async Task<HttpResponseMessage> Send(HttpMethod method, string path, 
+            Dictionary<string, string> queryParams = null, 
+            Dictionary<string, string> headers = null, 
+            byte[] content = null,
+            string contentType = null)
         {
             if (headers == null)
             {
@@ -145,7 +159,6 @@ namespace DataLake.gen2
             return url;
 
         }
-
 
         private void showHeaders(HttpRequestMessage req)
         {
