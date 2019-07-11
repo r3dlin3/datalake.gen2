@@ -6,6 +6,8 @@ using DataLake.gen2.Extensions;
 using System.Threading.Tasks;
 using System.Globalization;
 using System.Linq;
+using Microsoft.Rest.Azure.Authentication;
+using Microsoft.IdentityModel.Clients.ActiveDirectory;
 
 namespace DataLake.gen2
 {
@@ -13,13 +15,29 @@ namespace DataLake.gen2
     {
 
         public string AccountName { get; set; }
-        public string AccountKey { get; set; }
+        private string AccountKey;
         public string FileSystem { get; set; }
+        private ActiveDirectoryServiceSettings AzureADServiceSettings;
+        private AzureADSettings AzureADSettings;
 
-        public DataLakeStorageClient(string accountName, string accountKey, string fileSystem)
+        public DataLakeStorageClient(string accountName, string fileSystem, string accountKey)
         {
             this.AccountName = accountName;
             this.AccountKey = accountKey;
+            this.FileSystem = fileSystem;
+        }
+
+        public DataLakeStorageClient(string accountName, string fileSystem, AzureADSettings azureADSettings)
+        {
+            this.AccountName = accountName;
+            this.AzureADSettings = azureADSettings;
+            AzureADServiceSettings = new ActiveDirectoryServiceSettings
+            {
+                AuthenticationEndpoint = new Uri(string.Format("https://login.microsoftonline.com/{0}/oauth2/v2.0/token", azureADSettings.TenantId)),
+                //TokenAudience = new Uri(string.Format("https://{0}{1}/", accountName, SUFFIX)),
+                TokenAudience = new Uri("https://storage.azure.com"),
+                ValidateAuthority = true
+            };
             this.FileSystem = fileSystem;
         }
         private readonly HttpClient client = new HttpClient();
@@ -81,9 +99,31 @@ namespace DataLake.gen2
                 req.Content.Headers.ContentLength = content.Length;
                 req.Content.Headers.ContentType = new MediaTypeHeaderValue(contentType);
             }
-            req.Headers.Authorization = new AuthenticationHeaderValue(
-                SASHelper.SCHEME,
-                SASHelper.GetAuthorizationHeader(req, AccountName, AccountKey));
+
+            if (null != this.AzureADSettings)
+            {
+                // cf. https://stackoverflow.com/a/54256816
+                await ApplicationTokenProvider.LoginSilentAsync(
+                AzureADSettings.TenantId,
+                AzureADSettings.ServicePrincipalId,
+                AzureADSettings.ServicePrincipalSecret,
+                    AzureADServiceSettings,
+                    TokenCache.DefaultShared);
+
+                var token = TokenCache.DefaultShared.ReadItems()
+                    .Where(t => t.ClientId == AzureADSettings.ServicePrincipalId)
+                    .OrderByDescending(t => t.ExpiresOn)
+                    .First();
+                req.Headers.Authorization = new AuthenticationHeaderValue(
+                    "Bearer",
+                    token.AccessToken);
+            }
+            else
+            {
+                req.Headers.Authorization = new AuthenticationHeaderValue(
+                    SASHelper.SCHEME,
+                    SASHelper.GetAuthorizationHeader(req, AccountName, AccountKey));
+            }
 
             showHeaders(req);
             return await client.SendAsync(req);
@@ -113,5 +153,6 @@ namespace DataLake.gen2
             req.Headers.ToList().ForEach(kv => Console.WriteLine(kv.Key + ": " + kv.Value));
 
         }
+
     }
 }
