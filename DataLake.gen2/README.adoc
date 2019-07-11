@@ -1,0 +1,8 @@
+= Projet d'exemple en .Net Core pour utiliser Azure Data Lake Storage Gen2
+
+Quelques explications sur https://r3dlin3.github.io/2019/07/04/dotnet-core-datalakestorage/.
+
+S'appuie sur la documentation de Microsoft: https://docs.microsoft.com/fr-fr/rest/api/storageservices/data-lake-storage-gen2
+
+Permet une authentification par https://docs.microsoft.com/fr-fr/rest/api/storageservices/authorize-with-shared-key[Shared Key] ou Azure AD
+
