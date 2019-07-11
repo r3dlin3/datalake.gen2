@@ -72,24 +72,5 @@ namespace DataLake.gen2
             return Path.Combine(appRoot, fileName);
         }
 
-        private class ByteArrayContent
-        {
-            private object result;
-
-            public ByteArrayContent(object result)
-            {
-                this.result = result;
-            }
-        }
-
-        private class StreamContent
-        {
-            private object stream;
-
-            public StreamContent(object stream)
-            {
-                this.stream = stream;
-            }
-        }
     }
 }
